@@ -109,6 +109,45 @@ class RubTest {
     }
 
     @Test
+    void edgeCases(@TempDir Path dir) throws IOException {
+        // Constructor domain: a negative history depth is a caller defect, refused loudly.
+        try (SmokeHouse<Long, String> store = SmokeHouse.open(dir.resolve("a"), opts())) {
+            org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                    () -> Rub.over(store, -1), "negative history depth is refused");
+            org.junit.jupiter.api.Assertions.assertThrows(NullPointerException.class,
+                    () -> Rub.over(null), "a null store is refused");
+        }
+
+        // Depth 0: tick() still answers, retains nothing.
+        try (SmokeHouse<Long, String> store = SmokeHouse.open(dir.resolve("b"), opts());
+             Rub<Long, String> rub = Rub.over(store, 0)) {
+            store.put(1L, "x");
+            Vitals v = rub.tick();
+            assertEquals(1, v.liveKeys(), "tick still samples at depth 0");
+            assertEquals(0, rub.history().size(), "depth 0 retains nothing");
+        }
+
+        // A fresh, empty store samples sanely: zero keys, zero ratios, gap-free.
+        try (SmokeHouse<Long, String> store = SmokeHouse.open(dir.resolve("c"), opts());
+             Rub<Long, String> rub = Rub.over(store)) {
+            Vitals v = rub.sample();
+            assertEquals(0, v.liveKeys());
+            assertEquals(0, v.mutationsObserved());
+            assertEquals(0.0, v.garbageRatio(), "empty log has ratio 0, not NaN");
+            assertEquals(0.0, v.deleteRatio(), "no mutations has ratio 0, not NaN");
+            assertTrue(v.gapFree());
+            assertTrue(v.line().contains("keys=0"), "the line renders on an empty store");
+        }
+
+        // close() is idempotent — a second close is a no-op, not a fault.
+        SmokeHouse<Long, String> store = SmokeHouse.open(dir.resolve("d"), opts());
+        Rub<Long, String> rub = Rub.over(store);
+        rub.close();
+        rub.close();                                           // must not throw
+        store.close();
+    }
+
+    @Test
     void garbageAppearsWithOverwritesAndVanishesOnCompaction(@TempDir Path dir) throws IOException {
         try (SmokeHouse<Long, String> store = SmokeHouse.open(dir, opts());
              Rub<Long, String> rub = Rub.over(store)) {

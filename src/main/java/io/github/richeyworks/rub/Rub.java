@@ -50,6 +50,7 @@ public final class Rub<K, V> implements Closeable {
 
     private final Object historyLock = new Object();
     private final Deque<Vitals> history = new ArrayDeque<>();
+    private volatile boolean closed;
 
     private Rub(SmokeHouse<K, V> store, int historyDepth) {
         this.store = store;
@@ -190,9 +191,17 @@ public final class Rub<K, V> implements Closeable {
         return true;
     }
 
-    /** Detach the tail subscriber. The observed store stays open — it is the caller's. */
+    /**
+     * Detach the tail subscriber. The observed store stays open — it is the caller's.
+     * Idempotent: a second close is a no-op, so Rub is safe in try-with-resources stacks
+     * that tear down more than once.
+     */
     @Override
     public void close() throws IOException {
+        if (closed) {
+            return;
+        }
+        closed = true;
         try {
             subscription.close();
         } catch (IOException e) {

@@ -52,9 +52,13 @@ public record Vitals(
         return gapsObserved == 0;
     }
 
-    /** A one-line human readout, the shape every engine prints its vitals in. */
+    /**
+     * A one-line human readout, the shape every engine prints its vitals in. Formatted with
+     * {@link java.util.Locale#ROOT} so the line is byte-identical on every machine — a vitals
+     * line that changes shape with the default locale would break any consumer that greps it.
+     */
     public String line() {
-        return String.format(
+        return String.format(java.util.Locale.ROOT,
                 "keys=%d seq=%d segs=%d live=%dB garbage=%dB (%.1f%%) puts=%d dels=%d (%.1f%% del) gaps=%d",
                 liveKeys, tailSequence, segments, liveBytes, garbageBytes, garbageRatio() * 100,
                 putsObserved, deletesObserved, deleteRatio() * 100, gapsObserved);
