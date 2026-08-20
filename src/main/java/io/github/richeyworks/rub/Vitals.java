@@ -53,6 +53,57 @@ public record Vitals(
     }
 
     /**
+     * The change between an earlier reading and this one — a <b>pulse</b> (2026-08-19): rates
+     * without a clock, in the house tradition. Everything is op-relative ({@code opsElapsed}
+     * is the tail-sequence advance), so two pulses are comparable across machines and runs
+     * where wall-clock rates would not be. {@code earlier} must genuinely be earlier (its
+     * tail sequence at most this one's); the meters are monotonic, so negative deltas mean
+     * the samples were swapped — refused loudly rather than reported as nonsense.
+     */
+    public Pulse since(Vitals earlier) {
+        java.util.Objects.requireNonNull(earlier, "earlier");
+        if (earlier.tailSequence > tailSequence) {
+            throw new IllegalArgumentException("samples swapped: 'earlier' is at sequence "
+                    + earlier.tailSequence + ", this sample at " + tailSequence);
+        }
+        return new Pulse(
+                tailSequence - earlier.tailSequence,
+                putsObserved - earlier.putsObserved,
+                deletesObserved - earlier.deletesObserved,
+                gapsObserved - earlier.gapsObserved,
+                liveKeys - earlier.liveKeys,
+                garbageBytes - earlier.garbageBytes);
+    }
+
+    /**
+     * The change between two {@link Vitals} readings: committed ops elapsed, mutations metered,
+     * gaps suffered, and how the live set and the garbage moved — the derivative the gauge and
+     * meter together make possible. Key/byte deltas can be negative (deletes shrink the live
+     * set; compaction reclaims garbage); the observation counters cannot.
+     */
+    public record Pulse(
+            long opsElapsed,
+            long putsObserved,
+            long deletesObserved,
+            long gapsObserved,
+            long liveKeysDelta,
+            long garbageBytesDelta) {
+
+        /** Mutations metered across this pulse. */
+        public long mutationsObserved() {
+            return putsObserved + deletesObserved;
+        }
+
+        /** A one-line readout, {@link java.util.Locale#ROOT}-pinned like every house line. */
+        public String line() {
+            return String.format(java.util.Locale.ROOT,
+                    "ops=%+d puts=%d dels=%d gaps=%d keys=%+d garbage=%+dB",
+                    opsElapsed, putsObserved, deletesObserved, gapsObserved,
+                    liveKeysDelta, garbageBytesDelta);
+        }
+    }
+
+    /**
      * A one-line human readout, the shape every engine prints its vitals in. Formatted with
      * {@link java.util.Locale#ROOT} so the line is byte-identical on every machine — a vitals
      * line that changes shape with the default locale would break any consumer that greps it.

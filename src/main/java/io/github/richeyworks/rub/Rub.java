@@ -142,6 +142,26 @@ public final class Rub<K, V> implements Closeable {
         return sample;
     }
 
+    /**
+     * The pulse between the two most recent retained ticks (2026-08-19), or {@code null} when
+     * fewer than two are retained — you cannot take a derivative of one point. Caller-cadenced
+     * like {@link #tick()} itself: the pulse spans whatever interval the caller's own rhythm
+     * put between the ticks, measured in committed ops, never wall-clock.
+     */
+    public Vitals.Pulse pulse() {
+        Vitals earlier;
+        Vitals later;
+        synchronized (historyLock) {
+            if (history.size() < 2) {
+                return null;
+            }
+            var it = history.descendingIterator();
+            later = it.next();
+            earlier = it.next();
+        }
+        return later.since(earlier);
+    }
+
     /** The retained samples, oldest first — a copy, safe to iterate while metering continues. */
     public List<Vitals> history() {
         synchronized (historyLock) {

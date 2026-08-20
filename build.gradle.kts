@@ -18,7 +18,7 @@ tasks.withType<JavaCompile>().configureEach {
 dependencies {
     // Rub observes the store's PUBLIC surface only — tail events and vitals. SmokeHouse is
     // the whole dependency: no engine reaches inside another, least of all the one watching.
-    api("io.github.richeyworks:smokehouse:0.1.0")
+    api("io.github.richeyworks:smokehouse:0.2.0")
 
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)

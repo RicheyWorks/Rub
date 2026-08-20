@@ -9,6 +9,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Random;
 import java.util.TreeMap;
 
@@ -105,6 +106,47 @@ class RubTest {
             assertEquals(4, rub.history().size(), "history is bounded to its depth");
             assertEquals(last, rub.history().get(rub.history().size() - 1),
                     "the newest tick is retained at the back");
+        }
+    }
+
+    @Test
+    void thePulseIsTheDerivativeOfTwoTicks(@TempDir Path dir) throws IOException {
+        try (SmokeHouse<Long, String> store = SmokeHouse.open(dir, opts());
+             Rub<Long, String> rub = Rub.over(store)) {
+            assertEquals(null, rub.pulse(), "no derivative of zero points");
+            for (long k = 0; k < 10; k++) {
+                store.put(k, "v" + k);
+            }
+            assertTrue(rub.awaitObserved(10, AWAIT));
+            rub.tick();
+            assertEquals(null, rub.pulse(), "no derivative of one point");
+
+            for (long k = 0; k < 5; k++) {                     // 3 puts + 2 deletes since tick 1
+                if (k < 3) {
+                    store.put(100 + k, "w" + k);
+                } else {
+                    store.delete(k);
+                }
+            }
+            assertTrue(rub.awaitObserved(15, AWAIT));
+            rub.tick();
+
+            Vitals.Pulse p = rub.pulse();
+            assertEquals(5, p.opsElapsed(), "five committed ops between the ticks");
+            assertEquals(3, p.putsObserved());
+            assertEquals(2, p.deletesObserved());
+            assertEquals(5, p.mutationsObserved());
+            assertEquals(0, p.gapsObserved());
+            assertEquals(1, p.liveKeysDelta(), "+3 keys, -2 keys");
+            assertTrue(p.garbageBytesDelta() >= 0, "deletes leave tombstone garbage, never negative here");
+            assertTrue(p.line().contains("ops=+5"), "the pulse line renders");
+
+            // Swapped samples are refused loudly, not reported as nonsense.
+            List<Vitals> h = rub.history();
+            Vitals first = h.get(h.size() - 2);
+            Vitals second = h.get(h.size() - 1);
+            org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                    () -> first.since(second), "a pulse cannot run backwards");
         }
     }
 
