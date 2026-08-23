@@ -4,6 +4,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Java 17](https://img.shields.io/badge/Java-17-orange.svg)](https://adoptium.net/)
 
+> **New here — or not a coder?** Start with the [plain-English guide to the whole ecosystem →](https://github.com/RicheyWorks/WholeHog/blob/main/ECOSYSTEM.md): what all of this is, what you'd actually use it for, and how to get it running even if you've never written a line of code.
+
+
 Engine thirteen of the ecosystem: **the observability engine** — the rub worked into the
 surface of every other engine. WholeHog stood a bare watcher on the store's tail and counted
 events to prove its four subscribers converge; Rub is that watcher **promoted to an organ**.
@@ -55,6 +58,13 @@ Engine 12: [WholeHog](https://github.com/RicheyWorks/WholeHog) (the integration 
 Engines 13–14: **Rub** (this repo, observability) · [Sizzle](https://github.com/RicheyWorks/Sizzle) (chaos).
 
 ## Build
+
+**Never set up a project like this before?** You don't need to know Java or Gradle. Open [Claude](https://claude.ai) or ChatGPT and paste:
+
+> *“Walk me through installing Java 17 and running `RicheyWorks/Rub` from GitHub, one step at a time. I'm on Windows (or Mac) and I've never done this — keep it simple.”*
+
+It will take you the rest of the way. The full newcomer guide lives in [ECOSYSTEM.md](https://github.com/RicheyWorks/WholeHog/blob/main/ECOSYSTEM.md).
+
 
 ```bash
 # Requires SmokeHouse (and its siblings) cloned alongside — composite build.
